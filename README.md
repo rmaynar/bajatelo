@@ -76,9 +76,7 @@
 ### Running bajatelo
 
 1. Clone or navigate to the project directory:
-   ```bash
-   cd yt-dl
-   ```
+
 
 2. Build and start the containers in detached mode:
    ```bash
