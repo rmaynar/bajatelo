@@ -16,6 +16,9 @@ import yt_dlp
 # Configurar logging
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 DEMO_MAX_DURATION = int(os.getenv("DEMO_MAX_DURATION", "0"))
+DEMO_DOWNLOAD_COOLDOWN_MINUTES = int(os.getenv("DEMO_DOWNLOAD_COOLDOWN_MINUTES", "0"))
+ip_last_download = {}
+
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -248,12 +251,27 @@ async def get_info(req: InfoRequest):
 
 @app.get("/api/download")
 async def download_video(
+    request: Request,
     background_tasks: BackgroundTasks,
     url: str = Query(..., description="URL del vídeo"),
     format_type: str = Query("bestvideo+bestaudio/best", description="Tipo o formato de descarga")
 ):
     """Descarga el vídeo de forma aislada sin bloquear el servidor."""
     start_time = time.time()
+
+    client_ip = request.client.host if request.client else "unknown"
+    if DEMO_DOWNLOAD_COOLDOWN_MINUTES > 0 and client_ip != "unknown":
+        last_download = ip_last_download.get(client_ip, 0)
+        cooldown_seconds = DEMO_DOWNLOAD_COOLDOWN_MINUTES * 60
+        if time.time() - last_download < cooldown_seconds:
+            remaining = int((cooldown_seconds - (time.time() - last_download)) / 60) + 1
+            raise HTTPException(
+                status_code=429,
+                detail=f"Rate limit exceeded. Please wait {remaining} minutes between downloads."
+            )
+        # Update last download time
+        ip_last_download[client_ip] = time.time()
+
     record_trace("DOWNLOAD", url, "STARTED", {"format": format_type})
 
     # Validación básica de esquema URL

@@ -10,6 +10,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - DEMO_MAX_DURATION=60
+      - DEMO_DOWNLOAD_COOLDOWN_MINUTES=10
 
   frontend:
     build:
