@@ -15,6 +15,7 @@ import yt_dlp
 
 # Configurar logging
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+DEMO_MAX_DURATION = int(os.getenv("DEMO_MAX_DURATION", "0"))
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -239,6 +240,7 @@ async def get_info(req: InfoRequest):
             "title": info.get("title"),
             "thumbnail": info.get("thumbnail"),
             "duration": info.get("duration"),
+            "demo_max_duration": DEMO_MAX_DURATION,
         }
     except Exception as e:
         logger.error("Error extracting info for %s: %s", req.url, e, exc_info=True)

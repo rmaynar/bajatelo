@@ -36,6 +36,9 @@ const TRANSLATIONS = {
     footer: 'bajatelo • Fast, Private & Free Universal Media Downloader',
     clipboardError: 'Unable to read clipboard. Please paste manually.',
     defaultError: 'Error fetching video information. Please verify the URL and try again.',
+    demoLimitModalTitle: 'Demo Mode',
+    demoLimitModalMessage: 'Demo web limited to 60s videos.',
+    demoLimitModalClose: 'Close',
   },
   es: {
     logo: 'bajatelo',
@@ -72,6 +75,9 @@ const TRANSLATIONS = {
     footer: 'bajatelo • Descargador Universal de Medios Rápido, Privado y Gratuito',
     clipboardError: 'No se pudo leer el portapapeles. Pega el enlace manualmente.',
     defaultError: 'Error al obtener información del vídeo. Comprueba la URL e inténtalo de nuevo.',
+    demoLimitModalTitle: 'Modo Demo',
+    demoLimitModalMessage: 'Version web limitada a vídeos de 60s.',
+    demoLimitModalClose: 'Cerrar',
   }
 };
 
@@ -148,9 +154,11 @@ function App() {
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState('');
   const [selectedQuality, setSelectedQuality] = useState('best');
+  const [showDemoModal, setShowDemoModal] = useState(false);
 
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
   const currentQualityConfig = QUALITY_OPTIONS.find(q => q.id === selectedQuality) || QUALITY_OPTIONS[0];
+  const isDemoBlocked = videoInfo?.demo_max_duration > 0 && videoInfo?.duration > videoInfo?.demo_max_duration;
 
   useEffect(() => {
     localStorage.setItem('ytdl_lang', lang);
@@ -186,6 +194,11 @@ function App() {
       }
       console.info('[Frontend] Video metadata received:', data);
       setVideoInfo(data);
+      
+      // Feature toggle for demo limitation
+      if (data.demo_max_duration > 0 && data.duration > data.demo_max_duration) {
+        setShowDemoModal(true);
+      }
     } catch (err) {
       console.error('[Frontend] Error fetching video info:', err);
       setError(err.message || t.defaultError);
@@ -439,7 +452,7 @@ function App() {
                       className="quality-select"
                       value={selectedQuality}
                       onChange={(e) => setSelectedQuality(e.target.value)}
-                      disabled={Boolean(downloading)}
+                      disabled={Boolean(downloading) || isDemoBlocked}
                     >
                       {QUALITY_OPTIONS.map((opt) => (
                         <option key={opt.id} value={opt.id}>
@@ -460,7 +473,7 @@ function App() {
                   <button 
                     type="button"
                     className={`btn-download ${currentQualityConfig.isAudio ? 'btn-audio' : 'btn-video'}`}
-                    disabled={Boolean(downloading)}
+                    disabled={Boolean(downloading) || isDemoBlocked}
                     onClick={() => handleDownload(currentQualityConfig.format)}
                   >
                     {downloading === currentQualityConfig.format ? (
@@ -496,7 +509,7 @@ function App() {
                     <button 
                       type="button"
                       className="btn-download btn-video"
-                      disabled={Boolean(downloading)}
+                      disabled={Boolean(downloading) || isDemoBlocked}
                       onClick={() => handleDownload('bestvideo+bestaudio/best')}
                     >
                       {downloading === 'bestvideo+bestaudio/best' ? (
@@ -518,7 +531,7 @@ function App() {
                     <button 
                       type="button"
                       className="btn-download btn-audio"
-                      disabled={Boolean(downloading)}
+                      disabled={Boolean(downloading) || isDemoBlocked}
                       onClick={() => handleDownload('bestaudio')}
                     >
                       {downloading === 'bestaudio' ? (
@@ -588,6 +601,26 @@ function App() {
       <footer className="app-footer">
         {t.footer}
       </footer>
+
+      {/* Demo Limit Modal */}
+      {showDemoModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
+            <h2 className="modal-title">{t.demoLimitModalTitle}</h2>
+            <p className="modal-message">{t.demoLimitModalMessage}</p>
+            <button className="modal-close-btn" onClick={() => setShowDemoModal(false)}>
+              {t.demoLimitModalClose}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

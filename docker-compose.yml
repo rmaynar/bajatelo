@@ -9,6 +9,7 @@ services:
       - "8000"
     environment:
       - PYTHONUNBUFFERED=1
+      - DEMO_MAX_DURATION=60
 
   frontend:
     build:
