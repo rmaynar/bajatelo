@@ -21,6 +21,12 @@ const TRANSLATIONS = {
     duration: 'Duration',
     videoFormatTag: 'MP4 / Best Quality',
     audioFormatTag: 'MP3 / 320kbps Audio',
+    qualityLabel: 'Select Quality / Format',
+    qualityBest: 'Best Quality (1080p+)',
+    quality1080p: '1080p Full HD (MP4)',
+    quality720p: '720p HD (MP4)',
+    quality480p: '480p SD (MP4)',
+    qualityAudio: 'Audio Only (MP3)',
     feature1Title: '1,000+ Supported Sites',
     feature1Desc: 'Supports YouTube, TikTok, Instagram Reels/Posts, Twitter/X, Twitch, Facebook, SoundCloud, Reddit, and more.',
     feature2Title: 'Ultra Fast Processing',
@@ -51,6 +57,12 @@ const TRANSLATIONS = {
     duration: 'Duración',
     videoFormatTag: 'Vídeo MP4 / Mejor Calidad',
     audioFormatTag: 'Audio MP3 / 320kbps',
+    qualityLabel: 'Seleccionar Calidad / Formato',
+    qualityBest: 'Mejor Calidad (1080p+)',
+    quality1080p: '1080p Full HD (MP4)',
+    quality720p: '720p HD (MP4)',
+    quality480p: '480p SD (MP4)',
+    qualityAudio: 'Solo Audio (MP3)',
     feature1Title: '+1.000 Sitios Compatibles',
     feature1Desc: 'Compatible con YouTube, TikTok, Instagram (Reels/Posts), Twitter/X, Twitch, Facebook, SoundCloud, Reddit y más.',
     feature2Title: 'Ultra Rápido',
@@ -75,6 +87,44 @@ const SUPPORTED_PLATFORMS = [
   { name: '+1000 more', icon: '✨' },
 ];
 
+const QUALITY_OPTIONS = [
+  {
+    id: 'best',
+    format: 'bestvideo+bestaudio/best',
+    isAudio: false,
+    badge: '1080p+',
+    labelKey: 'qualityBest',
+  },
+  {
+    id: '1080p',
+    format: 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best',
+    isAudio: false,
+    badge: '1080p',
+    labelKey: 'quality1080p',
+  },
+  {
+    id: '720p',
+    format: 'bestvideo[height<=720]+bestaudio/best[height<=720]/best',
+    isAudio: false,
+    badge: '720p',
+    labelKey: 'quality720p',
+  },
+  {
+    id: '480p',
+    format: 'bestvideo[height<=480]+bestaudio/best[height<=480]/best',
+    isAudio: false,
+    badge: '480p',
+    labelKey: 'quality480p',
+  },
+  {
+    id: 'bestaudio',
+    format: 'bestaudio',
+    isAudio: true,
+    badge: 'MP3',
+    labelKey: 'qualityAudio',
+  },
+];
+
 function formatDuration(seconds) {
   if (!seconds || isNaN(seconds)) return null;
   const sec = Math.floor(seconds);
@@ -97,8 +147,10 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState('');
+  const [selectedQuality, setSelectedQuality] = useState('best');
 
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
+  const currentQualityConfig = QUALITY_OPTIONS.find(q => q.id === selectedQuality) || QUALITY_OPTIONS[0];
 
   useEffect(() => {
     localStorage.setItem('ytdl_lang', lang);
@@ -372,52 +424,120 @@ function App() {
                 </div>
               </div>
 
-              <div>
+              <div className="download-controls-section">
+                {/* Quality / Format Selector Dropdown */}
+                <div className="quality-selector-container">
+                  <label htmlFor="quality-select" className="quality-label">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                    <span>{t.qualityLabel}</span>
+                  </label>
+                  <div className="select-wrapper">
+                    <select
+                      id="quality-select"
+                      className="quality-select"
+                      value={selectedQuality}
+                      onChange={(e) => setSelectedQuality(e.target.value)}
+                      disabled={Boolean(downloading)}
+                    >
+                      {QUALITY_OPTIONS.map((opt) => (
+                        <option key={opt.id} value={opt.id}>
+                          {t[opt.labelKey]}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="select-chevron">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="download-buttons">
+                  {/* Primary Download Button according to selected quality */}
                   <button 
                     type="button"
-                    className="btn-download btn-video"
+                    className={`btn-download ${currentQualityConfig.isAudio ? 'btn-audio' : 'btn-video'}`}
                     disabled={Boolean(downloading)}
-                    onClick={() => handleDownload('bestvideo+bestaudio/best')}
+                    onClick={() => handleDownload(currentQualityConfig.format)}
                   >
-                    {downloading === 'bestvideo+bestaudio/best' ? (
+                    {downloading === currentQualityConfig.format ? (
                       <>
                         <span className="spinner"></span>
-                        <span>{t.processingVideo}</span>
+                        <span>{currentQualityConfig.isAudio ? t.processingAudio : t.processingVideo}</span>
                       </>
                     ) : (
                       <>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                          <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-                        </svg>
-                        <span>{t.downloadVideo}</span>
+                        {currentQualityConfig.isAudio ? (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M9 18V5l12-2v13"></path>
+                            <circle cx="6" cy="18" r="3"></circle>
+                            <circle cx="18" cy="16" r="3"></circle>
+                          </svg>
+                        ) : (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                          </svg>
+                        )}
+                        <span>
+                          {currentQualityConfig.isAudio 
+                            ? t.downloadAudio 
+                            : `${t.downloadVideo} (${currentQualityConfig.badge})`}
+                        </span>
                       </>
                     )}
                   </button>
 
-                  <button 
-                    type="button"
-                    className="btn-download btn-audio"
-                    disabled={Boolean(downloading)}
-                    onClick={() => handleDownload('bestaudio')}
-                  >
-                    {downloading === 'bestaudio' ? (
-                      <>
-                        <span className="spinner"></span>
-                        <span>{t.processingAudio}</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M9 18V5l12-2v13"></path>
-                          <circle cx="6" cy="18" r="3"></circle>
-                          <circle cx="18" cy="16" r="3"></circle>
-                        </svg>
-                        <span>{t.downloadAudio}</span>
-                      </>
-                    )}
-                  </button>
+                  {/* Secondary Quick Action Button */}
+                  {currentQualityConfig.isAudio ? (
+                    <button 
+                      type="button"
+                      className="btn-download btn-video"
+                      disabled={Boolean(downloading)}
+                      onClick={() => handleDownload('bestvideo+bestaudio/best')}
+                    >
+                      {downloading === 'bestvideo+bestaudio/best' ? (
+                        <>
+                          <span className="spinner"></span>
+                          <span>{t.processingVideo}</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                          </svg>
+                          <span>{t.downloadVideo} (1080p+)</span>
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <button 
+                      type="button"
+                      className="btn-download btn-audio"
+                      disabled={Boolean(downloading)}
+                      onClick={() => handleDownload('bestaudio')}
+                    >
+                      {downloading === 'bestaudio' ? (
+                        <>
+                          <span className="spinner"></span>
+                          <span>{t.processingAudio}</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M9 18V5l12-2v13"></path>
+                            <circle cx="6" cy="18" r="3"></circle>
+                            <circle cx="18" cy="16" r="3"></circle>
+                          </svg>
+                          <span>{t.downloadAudio}</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
 
                 {downloading && (
